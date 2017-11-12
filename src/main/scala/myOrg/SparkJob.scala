@@ -1,48 +1,50 @@
 package myOrg
 
 import myOrg.utils.SparkBaseRunner
-import org.apache.spark.sql.{ DataFrame, SparkSession }
 
 object SparkJob extends SparkBaseRunner {
-  logger.info(getOptionalString("foo", "somethingElse"))
-  logger.info(getOptionalString("notSet", "somethingElse"))
   val spark = createSparkSession(this.getClass.getName)
 
-  // TODO businesss logic here
   import spark.implicits._
+  import org.graphframes._
 
-  val df = Seq(
-    (0, "A", "B", "C", "D"),
-    (1, "A", "B", "C", "D"),
-    (0, "d", "a", "jkl", "d"),
-    (0, "d", "g", "C", "D"),
-    (1, "A", "d", "t", "k"),
-    (1, "d", "c", "C", "D"),
-    (1, "c", "B", "C", "D")).toDF("TARGET", "col1", "col2", "col3TooMany", "col4")
-  df.createOrReplaceTempView("mydf")
-  spark.sql(
-    """
-      |SELECT * FROM mydf
-    """.stripMargin).show
+  val v = Seq(
+    ("a", "Alice", 1),
+    ("b", "Bob", 0),
+    ("c", "Charlie", 0),
+    ("d", "David", 0),
+    ("e", "Esther", 0),
+    ("f", "Fanny", 0),
+    ("g", "Gabby", 0),
+    ("h", "Fraudster", 1)).toDF("id", "name", "fraud")
+  val e = Seq(
+    ("a", "b", "call"),
+    ("b", "c", "sms"),
+    ("c", "b", "sms"),
+    ("f", "c", "sms"),
+    ("e", "f", "sms"),
+    ("e", "d", "call"),
+    ("d", "a", "call"),
+    ("d", "e", "sms"),
+    ("a", "e", "call"),
+    ("a", "h", "call"),
+    ("f", "h", "call")).toDF("src", "dst", "relationship")
+  val g = GraphFrame(v, e)
 
-  df.show
+  // Display the vertex and edge DataFrames
+  g.vertices.show()
+  g.edges.show()
 
-  //  val homeDir = System.getProperty("user.home")
-  //  var path = homeDir + File.separator + "directory" + File.separator
-  //  path = path.replaceFirst("^~", System.getProperty("user.home"))
+  // Query: Get in-degree of each vertex.
+  g.inDegrees.show()
 
-  //  val rawDf = readCsv(spark, path + "pathToFile")
-  spark.stop
+  // find most fraudulent user
+  g.vertices.groupBy().max("fraud").show()
 
-  def readCsv(spark: SparkSession, inputPath: String): DataFrame = {
-    //    import spark.implicits._
-    spark.read.
-      option("header", "true")
-      .option("inferSchema", true)
-      .option("charset", "UTF-8")
-      .option("delimiter", ";")
-      .csv(inputPath)
-      .withColumn("col1", $"col1".cast("Date"))
-      .withColumnRenamed("col2", "colAAA")
-  }
+  // Query: Count the number of "follow" connections in the graph.
+  g.edges.filter("relationship = 'follow'").count()
+
+  // Run PageRank algorithm, and show results.
+  val results = g.pageRank.resetProbability(0.01).maxIter(20).run()
+  results.vertices.select("id", "pagerank").show()
 }

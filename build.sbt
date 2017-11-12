@@ -30,9 +30,9 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-core" % spark % "provided",
   "org.apache.spark" %% "spark-sql" % spark % "provided",
   "com.typesafe" % "config" % "1.3.1",
-  //  "graphframes" % "graphframes" % "0.5.0-spark2.1-s_2.11",
+  "graphframes" % "graphframes" % "0.5.0-spark2.1-s_2.11",
   //  "org.apache.spark" %% "spark-hive" % spark % "provided",
-  //  "org.apache.spark" %% "spark-graphx" % spark % "provided",
+  "org.apache.spark" %% "spark-graphx" % spark % "provided",
   //  "org.apache.spark" %% "spark-mllib" % spark % "provided",
   //  "org.apache.spark" %% "spark-streaming" % spark % "provided",
   "com.holdenkarau" %% "spark-testing-base" % s"${spark}_0.8.0" % "test"
@@ -57,7 +57,6 @@ assemblyMergeStrategy in assembly := {
 
 initialCommands in console :=
   """
-    |import java.io.File
     |
     |import org.apache.spark.SparkConf
     |import org.apache.spark.sql.{DataFrame, SparkSession}
@@ -65,14 +64,15 @@ initialCommands in console :=
     |val conf: SparkConf = new SparkConf()
     |    .setAppName("exampleSQL")
     |    .setMaster("local[*]")
-    |    .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
     |
-    |  val spark: SparkSession = SparkSession
+    |val spark: SparkSession = SparkSession
     |    .builder()
     |    .config(conf)
     |    .getOrCreate()
     |
-    |  import spark.implicits._
+    |import spark.implicits._
+    |val spark = createSparkSession(this.getClass.getName)
+    |import org.graphframes._
   """.stripMargin
 
 mainClass := Some("myOrg.SparkJob")
