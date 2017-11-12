@@ -59,7 +59,10 @@ initialCommands in console :=
   """
     |
     |import org.apache.spark.SparkConf
-    |import org.apache.spark.sql.{DataFrame, SparkSession}
+    |import org.apache.spark.sql.{Column, DataFrame}
+    |import org.apache.spark.sql.functions._
+    |import org.apache.spark.sql.{SparkSession}
+    |import org.graphframes.lib.AggregateMessages
     |
     |val conf: SparkConf = new SparkConf()
     |    .setAppName("exampleSQL")
