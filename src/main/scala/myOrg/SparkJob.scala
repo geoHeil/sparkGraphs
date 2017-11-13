@@ -2,7 +2,7 @@ package myOrg
 
 import myOrg.utils.SparkBaseRunner
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.{Column, DataFrame}
+import org.apache.spark.sql.{Column, DataFrame, Row}
 import org.graphframes._
 import org.graphframes.lib.AggregateMessages
 
@@ -71,12 +71,6 @@ object SparkJob extends SparkBaseRunner {
     .sendToDst(msgToDst) // send source user's age to destination
     .agg(mean(AM.msg).as("fraudScore")) // fraud score, stored in AM.msg column
 
-  // Query on sequence, with state (cnt)
-  //  (a) Define method for updating state given the next element of the motif.
-  def sumSms(cnt: Column, relationship: Column): Column = {
-    when(relationship === "sms", cnt + 1).otherwise(cnt)
-  }
-
   agg.show
   g.vertices.join(agg).show
 
@@ -86,6 +80,57 @@ object SparkJob extends SparkBaseRunner {
 
   // also it would be interesting to see how to add weighting
   //  val msgForSrc: Column = when(AM.src("color") === color, AM.edge("b") * AM.dst("belief"))
+  val pw = new java.io.PrintWriter("myGraph.graphml")
+
+  // Query on sequence, with state (cnt)
+  //  (a) Define method for updating state given the next element of the motif.
+  def sumSms(cnt: Column, relationship: Column): Column = {
+    when(relationship === "sms", cnt + 1).otherwise(cnt)
+  }
+
+  pw.write(toGraphML(g))
+  pw.close
+
+  // TODO access node via proper XML writer
+  // maybe https://github.com/apache/tinkerpop/blob/4293eb333dfbf3aea19cd326f9f3d13619ac0b54/gremlin-core/src/main/java/org/apache/tinkerpop/gremlin/structure/io/graphml/GraphMLWriter.java is helpful
+  // https://github.com/apache/tinkerpop/blob/4293eb333dfbf3aea19cd326f9f3d13619ac0b54/gremlin-core/src/main/java/org/apache/tinkerpop/gremlin/structure/io/graphml/GraphMLTokens.java
+  /// TODO improve writer as outlined by https://github.com/sparkling-graph/sparkling-graph/issues/8 and integrate there
+  def toGraphML(g: GraphFrame): String =
+    s"""
+       |<?xml version="1.0" encoding="UTF-8"?>
+       |<graphml xmlns="http://graphml.graphdrawing.org/xmlns"
+       |         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       |         xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns
+       |         http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+       |
+     |  <key id="v_name" for="node" attr.name="name" attr.type="string"/>
+       |  <key id="v_fraud" for="node" attr.name="fraud" attr.type="int"/>
+       |  <key id="e_edgeType" for="edge" attr.name="edgeType" attr.type="string"/>
+       |  <graph id="G" edgedefault="directed">
+       |${
+      g.vertices.map {
+        case Row(id, name, fraud) =>
+          s"""
+             |      <node id="${id}">
+             |         <data key = "v_name">${name}</data>
+             |         <data key = "v_fraud">${fraud}</data>
+             |      </node>
+           """.stripMargin
+      }.collect.mkString.stripLineEnd
+    }
+       |${
+      g.edges.map {
+        case Row(src, dst, relationship) =>
+          s"""
+             |      <edge source="${src}" target="${dst}">
+             |      <data key="e_edgeType">${relationship}</data>
+             |      </edge>
+           """.stripMargin
+      }.collect.mkString.stripLineEnd
+    }
+       |  </graph>
+       |</graphml>
+  """.stripMargin
 
 
 }
