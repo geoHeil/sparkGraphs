@@ -78,5 +78,14 @@ object SparkJob extends SparkBaseRunner {
   }
 
   agg.show
+  g.vertices.join(agg).show
+
+  // Below can filter out only for specific interaction type - but that would require multiple passes over the data
+  //  val msgForSrc: Column = when(AM.edge("relationship") === "sms", AM.dst("fraud"))
+  //  val msgForDst: Column = when(AM.edge("relationship") === "sms", AM.src("fraud"))
+
+  // also it would be interesting to see how to add weighting
+  //  val msgForSrc: Column = when(AM.src("color") === color, AM.edge("b") * AM.dst("belief"))
+
 
 }
