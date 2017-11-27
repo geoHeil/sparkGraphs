@@ -35,6 +35,13 @@ Calculate the fraud percentage score for each friend in the social network as th
 - differenciate by ingoing / outgoing interaction
 - weight interactions furhter away i.e. of friends of friends with a smaller weight
 
+In neo4j cyper it could look a bit similar to:
+```
+MATCH (a)-->(b)
+WHERE b.fraud = 1
+RETURN (count() / ( MATCH (a) -->(b) RETURN count() ) * 100)
+```
+
 Task:
 - learn pregel
 - learn aggregate messages operator :)
