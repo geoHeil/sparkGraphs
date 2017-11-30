@@ -29,8 +29,11 @@ CREATE
 
 
 **query**
+https://stackoverflow.com/questions/47556306/neo4j-mean-of-property-for-all-friends
 ```
-MATCH (a)-->(b)
-WHERE b.fraud = 1
-RETURN (count() / ( MATCH (a) -->(b) RETURN count() ) * 100)
+MATCH p = (source)-[*..3]-(destination)
+RETURN source.id, source.fraud, COUNT(*), avg(destination.fraud), COLLECT({id: destination.id, fraud: destination.fraud}) AS neighbors
 ```
+
+or https://stackoverflow.com/questions/47512635/neo4j-percentage-of-attribute-for-social-network
+or https://stackoverflow.com/questions/47554183/neo4j-multiple-match-aggregations-single-pass-over-graph for combined attributes 
